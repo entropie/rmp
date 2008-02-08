@@ -154,7 +154,7 @@ module NP
     end
 
     def to_s
-      super.gsub(/\):( )/, "@#{server})")
+      super.gsub(/\):( )/, "@#{server}) ")
     end
   end
   
@@ -211,7 +211,7 @@ end
 
 NP.skip = [NP::ShellFM, NP::Amarok]
 
-puts (if ARGV.size > 0
+puts (if ARGV.size > 0 and ARGV.to_s.strip == "ssh"
   NP.run(:use => [:ssh, { :user => :mit, :server => :tie} ] )
 else
   NP.run
