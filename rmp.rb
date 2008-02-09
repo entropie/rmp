@@ -75,6 +75,7 @@ module NP
       def apply!
         res = Hpricot.parse(open(URL))
         fs = res.search('div#container').map {|e| e.inner_text }.to_s.split(/\r\n/m).map{|s| s.strip}.reject {|s| s.empty?}[1..-2]
+        fs.reject!{ |f| f =~ /<img/ } # remove playlist img
         fs = Hash[*fs]
         @sel.result.replace "lounge radio: #{fs['Artist:']} - #{fs['Track:']} from #{fs['Album:']}"
       end
