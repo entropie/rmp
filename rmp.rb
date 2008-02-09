@@ -40,12 +40,16 @@ module NP
   def skip=(arr)
     @skip = arr
   end
-  module_function :skip=
+
+  module_function 'skip='
+
   def skip
     @skip ||= []
   end
+
   module_function :skip
 
+  # delegates selecter
   class Filter < SimpleDelegator
 
     def initialize(o)
@@ -53,6 +57,10 @@ module NP
     end
     def apply!
       @sel.result = @sel.result[10..20]
+      @sel
+    end
+
+    def __getobj__
       @sel
     end
     
@@ -77,7 +85,7 @@ module NP
         fs = res.search('div#container').map {|e| e.inner_text }.to_s.split(/\r\n/m).map{|s| s.strip}.reject {|s| s.empty?}[1..-2]
         fs.reject!{ |f| f =~ /<img/ } # remove playlist img
         fs = Hash[*fs]
-        @sel.result.replace "lounge radio: #{fs['Artist:']} - #{fs['Track:']} from #{fs['Album:']}"
+        result.replace "lounge radio: #{fs['Artist:']} - #{fs['Track:']} from #{fs['Album:']}"
       end
       
     end
