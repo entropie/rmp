@@ -213,9 +213,11 @@ module NP
 
   class ShellFM < Selecter
     NpFile = File.expand_path('~/Tmp/shell-fm.np')
-    
+
+    # i use an alias in my .zshrc like:
+    #  alias sfm="shell-fm || rm -f ~/Tmp/shell-fm.np && echo \"removed np file\""
     def output
-      @output ||= sh "cat #{NpFile}".strip
+      @output ||= if File.exists?(NpFile) then sh "cat #{NpFile}".strip else '' end
     end
     def match
       return false if (@result = output.to_s).empty?
