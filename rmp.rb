@@ -174,7 +174,11 @@ module NP
 
     def match
       lines = output.split("\n")
-      lines.size == 3 and lines[0] =~ (/-/) or return false
+      lines.size == 3 and
+        (lines[0] =~ (/-/) or
+        lines[0] =~ /\.mp3$/i or
+        lines[0] =~ /\.ogg$/i) or
+        return false
       @result = lines[0]
       super
     end
@@ -208,8 +212,10 @@ module NP
   end
 
   class ShellFM < Selecter
+    NpFile = File.expand_path('~/Tmp/shell-fm.np')
+    
     def output
-      @output ||= sh "cat ~/.np".strip
+      @output ||= sh "cat #{NpFile}".strip
     end
     def match
       return false if (@result = output.to_s).empty?
@@ -218,7 +224,7 @@ module NP
   end
 end
 
-NP.skip = [NP::ShellFM, NP::Amarok]
+NP.skip = [NP::Amarok]
 
 puts (if ARGV.size > 0 and ARGV.to_s.strip == "ssh"
   NP.run(:use => [:ssh, { :user => :mit, :server => :tie} ] )
