@@ -55,8 +55,8 @@ module NP
     def initialize(o)
       @sel = o
     end
+
     def apply!
-      @sel.result = @sel.result[10..20]
       @sel
     end
 
@@ -80,6 +80,7 @@ module NP
           self.new(o).apply!
         end
       end
+
       def apply!
         res = Hpricot.parse(open(URL))
         fs = res.search('div#container').map {|e| e.inner_text }.to_s.split(/\r\n/m).map{|s| s.strip}.reject {|s| s.empty?}[1..-2]
@@ -169,15 +170,15 @@ module NP
   
   class MPD < Selecter
     def output
-      @output ||= sh 'mpc play'
+      @output ||= sh 'mpc status'
     end
 
     def match
       lines = output.split("\n")
       lines.size == 3 and
         (lines[0] =~ (/-/) or
-        lines[0] =~ /\.mp3$/i or
-        lines[0] =~ /\.ogg$/i) or
+         lines[0] =~ /\.mp3$/i or
+         lines[0] =~ /\.ogg$/i) or
         return false
       @result = lines[0]
       super
@@ -191,7 +192,9 @@ module NP
 
     def match
       @result = output.split("\n").inject([]) do |m, l|
-        m << l.scan(/mplayer (.*$)$/m) unless l.to_s.strip.empty?
+        unless l.to_s.strip.empty?
+          m << l.scan(/mplayer (.*$)$/m).flatten.map{ |l| l.split(" ").last}
+        end        
       end.uniq.to_s
       return false if @result.empty?
       super
@@ -229,10 +232,10 @@ end
 NP.skip = [NP::Amarok]
 
 puts (if ARGV.size > 0 and ARGV.to_s.strip == "ssh"
-  NP.run(:use => [:ssh, { :user => :mit, :server => :tie} ] )
-else
-  NP.run
-end) and __FILE__ == $0
+        NP.run(:use => [:ssh, { :user => :mit, :server => :tie} ] )
+      else
+        NP.run
+      end) and __FILE__ == $0
 
 
 __END__
