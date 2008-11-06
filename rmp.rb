@@ -5,6 +5,8 @@
 #
 # Author:  Michael 'entropie' Trommer <mictro@gmail.com>
 #
+
+require 'rubygems'
 require 'delegate'
 require 'open-uri'
 
@@ -86,7 +88,7 @@ module NP
         fs = res.search('div#container').map {|e| e.inner_text }.to_s.split(/\r\n/m).map{|s| s.strip}.reject {|s| s.empty?}[1..-2]
         fs.reject!{ |f| f =~ /<img/ } # remove playlist img
         fs = Hash[*fs]
-        result.replace "lounge radio: #{fs['Artist:']} - #{fs['Track:']} from #{fs['Album:']}"
+        result.replace "lounge radio: '#{fs['Artist:']} - #{fs['Track:']}' from '#{fs['Album:']}'"
       end
       
     end
@@ -184,10 +186,35 @@ module NP
       super
     end
   end
+
+  class VLC < Selecter
+    def output
+      @output ||= sh "vlcnp"
+    end
+    
+    def match
+      @result = output.to_s
+      return false if @result.empty?
+      super
+    end
+  end
+  
+  class Itunes < Selecter
+    def output
+      @output ||= sh 'osascript /Users/mit/bin/np.scpt'
+    end
+
+    def match
+      lines = output.split("\n")
+      not lines.empty? or return false
+      @result = lines[0]
+      super
+    end
+  end
   
   class MPlayer < Selecter
     def output
-      @output ||= sh 'ps fax | grep mplayer'
+      @output ||= sh 'ps ax | grep mplayer'
     end
 
     def match
@@ -229,7 +256,7 @@ module NP
   end
 end
 
-NP.skip = [NP::Amarok]
+NP.skip = [NP::Amarok, NP::MPD]
 
 puts (if ARGV.size > 0 and ARGV.to_s.strip == "ssh"
         NP.run(:use => [:ssh, { :user => :mit, :server => :tie} ] )
