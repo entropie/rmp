@@ -95,7 +95,7 @@ module NP
   end
   
   def self.run(opts = { })
-    selecter = Selecter
+    selecter = Selector
     if use = opts[:use]
       if use.kind_of?(Array) and use.size == 2
         use, args = use
@@ -116,7 +116,7 @@ module NP
     selecter.run(runner, skip)
   end
   
-  class Selecter
+  class Selector
     include NP
     attr_writer :output
     attr_accessor :result
@@ -170,7 +170,7 @@ module NP
     end
   end
   
-  class MPD < Selecter
+  class MPD < Selector
     def output
       @output ||= sh 'mpc status'
     end
@@ -187,11 +187,11 @@ module NP
     end
   end
 
-  class VLC < Selecter
+  class VLC < Selector
     def output
-      @output ||= sh "vlcnp"
+      @output ||= sh File.expand_path("~/bin/vlcnp")
     end
-    
+
     def match
       @result = output.to_s
       return false if @result.empty?
@@ -199,7 +199,7 @@ module NP
     end
   end
   
-  class Itunes < Selecter
+  class Itunes < Selector
     def output
       @output ||= sh 'osascript /Users/mit/bin/np.scpt'
     end
@@ -212,7 +212,7 @@ module NP
     end
   end
   
-  class MPlayer < Selecter
+  class MPlayer < Selector
     def output
       @output ||= sh 'ps ax | grep mplayer'
     end
@@ -228,7 +228,7 @@ module NP
     end
   end
 
-  class Amarok < Selecter
+  class Amarok < Selector
     def output
       @output ||= sh "dcop amarok player title"
     end
@@ -241,7 +241,7 @@ module NP
 
   end
 
-  class ShellFM < Selecter
+  class ShellFM < Selector
     NpFile = File.expand_path('~/Tmp/shell-fm.np')
 
     # i use an alias in my .zshrc like:
