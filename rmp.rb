@@ -172,7 +172,7 @@ module NP
   
   class MPD < Selector
     def output
-      @output ||= sh 'mpc status'
+      @output ||= sh '/opt/local/bin/mpc status'
     end
 
     def match
@@ -198,10 +198,13 @@ module NP
       super
     end
   end
-  
+
   class Itunes < Selector
     def output
-      @output ||= sh 'osascript /Users/mit/bin/np.scpt'
+      if sh('ps ax | grep "/MacOS/iTunes -"') =~ /\-psn/
+        @output ||= sh 'osascript /Users/mit/bin/np.scpt'
+      end
+      @output ||= ""
     end
 
     def match
@@ -242,6 +245,7 @@ module NP
   end
 
   class ShellFM < Selector
+    
     NpFile = File.expand_path('~/Tmp/shell-fm.np')
 
     # i use an alias in my .zshrc like:
@@ -256,7 +260,7 @@ module NP
   end
 end
 
-NP.skip = [NP::Amarok, NP::MPD]
+NP.skip = [NP::Amarok]
 
 puts (if ARGV.size > 0 and ARGV.to_s.strip == "ssh"
         NP.run(:use => [:ssh, { :user => :mit, :server => :tie} ] )
