@@ -78,9 +78,7 @@ module NP
       require 'hpricot'
       
       def self.filter!(o)
-        if o.result =~ %r(mms://stream.green.ch/lounge-radio)
-          self.new(o).apply!
-        end
+        self.new(o).apply! if o.result =~ %r(mms://stream.green.ch/lounge-radio)
       end
 
       def apply!
@@ -92,8 +90,29 @@ module NP
       end
       
     end
+
+    class DubstemFM < Filter
+      
+      URL = "http://dubstep.fm/"
+      require 'hpricot'
+      
+      def self.filter!(o)
+        self.new(o).apply! if o.result =~ %r(DUBSTEP\.FM)
+      end
+
+      def apply!
+        res = Hpricot.parse(open(URL))
+        np = res.search('center').inner_text.gsub(/Now Playing: /, '')
+        result.replace "dubstep.fm: '#{np}'"
+      end
+      
+    end
+
+
+    
+    
   end
-  
+
   def self.run(opts = { })
     selecter = Selector
     if use = opts[:use]
@@ -172,7 +191,10 @@ module NP
   
   class MPD < Selector
     def output
-      @output ||= sh '/opt/local/bin/mpc status'
+      if sh('ps ax | grep "mpd"') !~ /grep/
+        @output ||= sh '/opt/local/bin/mpc status'
+      end
+      @output ||= ''
     end
 
     def match
