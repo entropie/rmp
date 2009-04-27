@@ -108,9 +108,40 @@ module NP
       
     end
 
+    class SomaFM < Filter
 
-    
-    
+      URLS = {
+        :secretagentsoma => %r(Secret Agent: The soundtrack for your stylish, mysterious, dangerous life.),
+        :beatblender     => %r(Beat Blender: A late night blend of deep-house & downtempo chill.),
+      }
+      
+      attr_accessor :suburl
+      URL = "http://twitter.com/%s"
+      require 'hpricot'
+      
+      def self.filter!(o)
+        self.new(o).apply! if o.result =~ %r(\[SomaFM\])
+      end
+
+      def twitter_site
+        self.suburl =
+          URLS.select{|key, val|
+          result =~ val
+        }.flatten.first
+      end
+      
+      def read
+        twitter_site
+        res = Hpricot.parse(open(URL % suburl))
+        self.result = res.search("li.latest-status .entry-content").inner_text[4..-1]
+      end
+      
+      def apply!
+        read
+        result.replace "soma.fm(#{suburl}): #{result}"
+      end
+    end
+
   end
 
   def self.run(opts = { })
