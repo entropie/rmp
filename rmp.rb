@@ -222,7 +222,7 @@ module NP
   
   class MPD < Selector
     def output
-      if sh('ps ax | grep "mpd"') !~ /grep/
+      if sh('ps ax | grep "mpd"').split("\n").size > 1
         @output ||= sh '/opt/local/bin/mpc status'
       end
       @output ||= ''
