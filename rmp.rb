@@ -9,6 +9,8 @@
 require 'rubygems'
 require 'delegate'
 require 'open-uri'
+require 'hpricot'
+
 
 #
 # Dead simple extensible np script which supports multible media
@@ -20,6 +22,8 @@ require 'open-uri'
 #    NP.run
 #  end)
 #
+
+HOST = "10.0.187.12"
 
 module NP
   
@@ -75,7 +79,6 @@ module NP
     class LoungeRadio < Filter
       
       URL = "http://www.lounge-radio.com/code/pushed_files/now.html"
-      require 'hpricot'
       
       def self.filter!(o)
         self.new(o).apply! if o.result =~ %r(mms://stream.green.ch/lounge-radio)
@@ -94,7 +97,6 @@ module NP
     class DubstemFM < Filter
       
       URL = "http://dubstep.fm/"
-      require 'hpricot'
       
       def self.filter!(o)
         self.new(o).apply! if o.result =~ %r(DUBSTEP\.FM)
@@ -117,7 +119,6 @@ module NP
       
       attr_accessor :suburl
       URL = "http://twitter.com/%s"
-      require 'hpricot'
       
       def self.filter!(o)
         self.new(o).apply! if o.result =~ %r(\[SomaFM\])
@@ -242,7 +243,7 @@ module NP
 
   class VLC < Selector
     def output
-      @output ||= sh File.expand_path("~/bin/vlcnp")
+      @output ||= Hpricot.parse(open("http://#{HOST}:8090/np.html")).to_s.strip
     end
 
     def match
