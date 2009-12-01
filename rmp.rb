@@ -248,7 +248,7 @@ module NP
 
     def match
       @result = output.to_s
-      return false if @result.empty?
+      return false if @result.empty? or @result.scan(/[A-Zaz]/).empty?
       super
     end
   end
