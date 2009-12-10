@@ -244,6 +244,8 @@ module NP
   class VLC < Selector
     def output
       @output ||= Hpricot.parse(open("http://#{HOST}:8090/np.html")).to_s.strip
+    rescue
+      ''
     end
 
     def match
