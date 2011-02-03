@@ -104,7 +104,8 @@ module NP
 
       def apply!
         res = Hpricot.parse(open(URL))
-        np = res.search('center').inner_text.gsub(/Now Playing: /, '')
+        np = res.search('center b a').inner_text.gsub(/Now Playing: /, '')
+        np = np.split(" - ")[0..-2].join(" - ")
         result.replace "dubstep.fm: '#{np}'"
       end
       
