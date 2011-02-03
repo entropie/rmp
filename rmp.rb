@@ -23,7 +23,7 @@ require 'hpricot'
 #  end)
 #
 
-HOST = "10.0.187.12"
+HOST = "localhost"
 
 module NP
   
@@ -239,11 +239,11 @@ module NP
       @result = lines[0]
       super
     end
-  end
+  end if ENV["MPD_HOST"]
 
   class VLC < Selector
     def output
-      @output ||= Hpricot.parse(open("http://#{HOST}:8090/np.html")).to_s.strip
+      @output ||= Hpricot.parse(open("http://#{HOST}:7000/np.html")).to_s.strip
     rescue
       ''
     end
