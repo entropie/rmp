@@ -81,7 +81,7 @@ module NP
       URL = "http://www.lounge-radio.com/code/pushed_files/now.html"
       
       def self.filter!(o)
-        self.new(o).apply! if o.result =~ %r(mms://stream.green.ch/lounge-radio)
+        self.new(o).apply! if o.result =~ %r(LOUNGE-RADIO.COM)
       end
 
       def apply!
@@ -89,7 +89,7 @@ module NP
         fs = res.search('div#container').map {|e| e.inner_text }.to_s.split(/\r\n/m).map{|s| s.strip}.reject {|s| s.empty?}[1..-2]
         fs.reject!{ |f| f =~ /<img/ } # remove playlist img
         fs = Hash[*fs]
-        result.replace "lounge radio: '#{fs['Artist:']} - #{fs['Track:']}' from '#{fs['Album:']}'"
+        result.replace "lounge radio: #{fs['Artist:']} - #{fs['Track:']}  (#{fs['Album:']})"
       end
       
     end
@@ -223,9 +223,8 @@ module NP
   
   class MPD < Selector
     def output
-      if sh('ps ax | grep "mpd"').split("\n").size > 1
-        @output ||= sh '/opt/local/bin/mpc status'
-      end
+      @output ||= sh '/opt/local/bin/mpc status 2>&1'
+      @output = "" if @output =~ /connection refused/
       @output ||= ''
     end
 
