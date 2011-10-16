@@ -26,18 +26,18 @@ require 'hpricot'
 HOST = "localhost"
 
 module NP
-  
+
   def runner
     @sel ||= []
   end
   module_function :runner
-  
+
   def sh(arg)
     `#{arg}`.to_s
   end
 
   module_function :sh
-  
+
 
   def self.extension(which)
     self.const_get(which.to_s.upcase.to_sym)
@@ -69,17 +69,17 @@ module NP
     def __getobj__
       @sel
     end
-    
+
     def self.filter_for(o)
       Filter.constants.map{ |c| Filter.const_get(c) }.map do |const|
-        const.filter!(o)
+        const.filter!(o) rescue nil
       end.compact
     end
 
     class LoungeRadio < Filter
-      
+
       URL = "http://www.lounge-radio.com/code/pushed_files/now.html"
-      
+
       def self.filter!(o)
         self.new(o).apply! if o.result =~ %r(LOUNGE-RADIO.COM)
       end
@@ -91,13 +91,13 @@ module NP
         fs = Hash[*fs]
         result.replace "lounge radio: #{fs['Artist:']} - #{fs['Track:']}  (#{fs['Album:']})"
       end
-      
+
     end
 
     class DubstemFM < Filter
-      
+
       URL = "http://dubstep.fm/"
-      
+
       def self.filter!(o)
         self.new(o).apply! if o.result =~ %r(DUBSTEP\.FM)
       end
@@ -108,7 +108,7 @@ module NP
         np = np.split(" - ")[0..-2].join(" - ")
         result.replace "dubstep.fm: '#{np}'"
       end
-      
+
     end
 
     class SomaFM < Filter
@@ -117,10 +117,10 @@ module NP
         :secretagentsoma => %r(Secret Agent: The soundtrack for your stylish, mysterious, dangerous life.),
         :beatblender     => %r(Beat Blender: A late night blend of deep-house & downtempo chill.),
       }
-      
+
       attr_accessor :suburl
       URL = "http://twitter.com/%s"
-      
+
       def self.filter!(o)
         self.new(o).apply! if o.result =~ %r(\[SomaFM\])
       end
@@ -131,13 +131,13 @@ module NP
           result =~ val
         }.flatten.first
       end
-      
+
       def read
         twitter_site
         res = Hpricot.parse(open(URL % suburl))
         self.result = res.search("li.latest-status .entry-content").inner_text[4..-1]
       end
-      
+
       def apply!
         read
         result.replace "soma.fm(#{suburl}): #{result}"
@@ -167,7 +167,7 @@ module NP
     end
     selecter.run(runner, skip)
   end
-  
+
   class Selector
     include NP
     attr_writer :output
@@ -190,7 +190,7 @@ module NP
     def name
       "#{self.class.name}".split('::').last.downcase
     end
-    
+
     def to_s
       "NP(#{name}): #{result}"
     end
@@ -204,15 +204,15 @@ module NP
     def prefix
       @prefix || PREFIX
     end
-    
+
     def user
       @user || USER
     end
-    
+
     def server
       @server || 'localhost'
     end
-    
+
     def sh(arg)
       `#{prefix} #{user}@#{server} #{arg}`
     end
@@ -221,10 +221,10 @@ module NP
       super.gsub(/\):( )/, "@#{server}) ")
     end
   end
-  
+
   class MPD < Selector
     def output
-      @output ||= sh '/opt/local/bin/mpc status 2>&1'
+      @output ||= sh 'mpc status 2>&1'
       @output = "" if @output =~ /connection refused/
       @output ||= ''
     end
@@ -239,7 +239,7 @@ module NP
       @result = lines[0]
       super
     end
-  end if ENV["MPD_HOST"]
+  end  if ENV["MPD_HOST"]
 
   class VLC < Selector
     def output
@@ -270,7 +270,7 @@ module NP
       super
     end
   end
-  
+
   class MPlayer < Selector
     def output
       @output ||= sh 'ps ax | grep mplayer'
@@ -280,7 +280,7 @@ module NP
       @result = output.split("\n").inject([]) do |m, l|
         unless l.to_s.strip.empty?
           m << l.scan(/mplayer (.*$)$/m).flatten.map{ |l| l.split(" ").last}
-        end        
+        end
       end.uniq.to_s
       return false if @result.empty?
       super
@@ -291,7 +291,7 @@ module NP
     def output
       @output ||= sh "dcop amarok player title"
     end
-    
+
     def match
       @result = output.to_s
       return false if @result.empty?
@@ -301,7 +301,7 @@ module NP
   end
 
   class ShellFM < Selector
-    
+
     NpFile = File.expand_path('~/Tmp/shell-fm.np')
 
     # i use an alias in my .zshrc like:
