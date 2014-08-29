@@ -281,7 +281,7 @@ module NP
         unless l.to_s.strip.empty?
           m << l.scan(/mplayer (.*$)$/m).flatten.map{ |l| l.split(" ").last}
         end
-      end.uniq.to_s
+      end.uniq.flatten
       return false if @result.empty?
       super
     end
