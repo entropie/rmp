@@ -241,6 +241,22 @@ module NP
     end
   end  if ENV["MPD_HOST"]
 
+
+  class Spotify < Selector
+    def output
+      @output ||= sh "playerctl metadata --format '{{ artist }} - {{ album }} - {{ title }}' 2>&1"
+      @output = "" if @output =~ /No players found/
+      @output ||= ''
+    end
+
+    def match
+      return false if output.size == 0
+      @result = output
+      super
+    end
+
+  end
+
   class VLC < Selector
     def output
       @output ||= Hpricot.parse(open("http://#{HOST}:7000/np.html")).to_s.strip
@@ -251,22 +267,6 @@ module NP
     def match
       @result = output.to_s
       return false if @result.empty? or @result.scan(/[A-Za-z]/).empty?
-      super
-    end
-  end
-
-  class Itunes < Selector
-    def output
-      if sh('ps ax | grep "/MacOS/iTunes -"') =~ /\-psn/
-        @output ||= sh 'osascript /Users/mit/bin/np.scpt'
-      end
-      @output ||= ""
-    end
-
-    def match
-      lines = output.split("\n")
-      not lines.empty? or return false
-      @result = lines[0]
       super
     end
   end
@@ -287,6 +287,7 @@ module NP
     end
   end
 
+
   class Amarok < Selector
     def output
       @output ||= sh "dcop amarok player title"
@@ -297,7 +298,6 @@ module NP
       return false if @result.empty?
       super
     end
-
   end
 
   class ShellFM < Selector
