@@ -9,7 +9,7 @@
 require 'rubygems'
 require 'delegate'
 require 'open-uri'
-require 'hpricot'
+require 'nokogiri'
 
 
 #
@@ -85,7 +85,7 @@ module NP
       end
 
       def apply!
-        res = Hpricot.parse(open(URL))
+        res = Nokogiri::HTML(URI.open(URL))
         fs = res.search('div#container').map {|e| e.inner_text }.to_s.split(/\r\n/m).map{|s| s.strip}.reject {|s| s.empty?}[1..-2]
         fs.reject!{ |f| f =~ /<img/ } # remove playlist img
         fs = Hash[*fs]
@@ -103,7 +103,7 @@ module NP
       end
 
       def apply!
-        res = Hpricot.parse(open(URL))
+        res = Nokogiri::HTML(URI.open(URL))
         np = res.search('center b a').inner_text.gsub(/Now Playing: /, '')
         np = np.split(" - ")[0..-2].join(" - ")
         result.replace "dubstep.fm: '#{np}'"
@@ -134,7 +134,7 @@ module NP
 
       def read
         twitter_site
-        res = Hpricot.parse(open(URL % suburl))
+        res = Nokogiri::HTML(URI.open(URL % suburl))
         self.result = res.search("li.latest-status .entry-content").inner_text[4..-1]
       end
 
@@ -259,7 +259,7 @@ module NP
 
   class VLC < Selector
     def output
-      @output ||= Hpricot.parse(open("http://#{HOST}:7000/np.html")).to_s.strip
+      @output ||= Nokogiri::HTML(URI.open("http://#{HOST}:7000/np.html")).to_s.strip
     rescue
       ''
     end
@@ -307,7 +307,7 @@ module NP
     # i use an alias in my .zshrc like:
     #  alias sfm="shell-fm || rm -f ~/Tmp/shell-fm.np && echo \"removed np file\""
     def output
-      @output ||= if File.exists?(NpFile) then sh "cat #{NpFile}".strip else '' end
+      @output ||= if File.exist?(NpFile) then sh "cat #{NpFile}".strip else '' end
     end
     def match
       return false if (@result = output.to_s).empty?
