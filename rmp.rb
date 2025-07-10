@@ -37,11 +37,6 @@ module NP
 
   module_function :sh
 
-
-  def self.extension(which)
-    self.const_get(which.to_s.upcase.to_sym)
-  end
-
   def skip=(arr)
     @skip = arr
   end
@@ -75,95 +70,24 @@ module NP
       end.compact
     end
 
-    class LoungeRadio < Filter
-
-      URL = "http://www.lounge-radio.com/code/pushed_files/now.html"
-
-      def self.filter!(o)
-        self.new(o).apply! if o.result =~ %r(LOUNGE-RADIO.COM)
-      end
-
-      def apply!
-        res = Nokogiri::HTML(URI.open(URL))
-        fs = res.search('div#container').map {|e| e.inner_text }.to_s.split(/\r\n/m).map{|s| s.strip}.reject {|s| s.empty?}[1..-2]
-        fs.reject!{ |f| f =~ /<img/ } # remove playlist img
-        fs = Hash[*fs]
-        result.replace "lounge radio: #{fs['Artist:']} - #{fs['Track:']}  (#{fs['Album:']})"
-      end
-
-    end
-
-    class DubstemFM < Filter
-
-      URL = "http://dubstep.fm/"
-
-      def self.filter!(o)
-        self.new(o).apply! if o.result =~ %r(DUBSTEP\.FM)
-      end
-
-      def apply!
-        res = Nokogiri::HTML(URI.open(URL))
-        np = res.search('center b a').inner_text.gsub(/Now Playing: /, '')
-        np = np.split(" - ")[0..-2].join(" - ")
-        result.replace "dubstep.fm: '#{np}'"
-      end
-
-    end
-
-    class SomaFM < Filter
-
-      URLS = {
-        :secretagentsoma => %r(Secret Agent: The soundtrack for your stylish, mysterious, dangerous life.),
-        :beatblender     => %r(Beat Blender: A late night blend of deep-house & downtempo chill.),
-      }
-
-      attr_accessor :suburl
-      URL = "http://twitter.com/%s"
-
-      def self.filter!(o)
-        self.new(o).apply! if o.result =~ %r(\[SomaFM\])
-      end
-
-      def twitter_site
-        self.suburl =
-          URLS.select{|key, val|
-          result =~ val
-        }.flatten.first
-      end
-
-      def read
-        twitter_site
-        res = Nokogiri::HTML(URI.open(URL % suburl))
-        self.result = res.search("li.latest-status .entry-content").inner_text[4..-1]
-      end
-
-      def apply!
-        read
-        result.replace "soma.fm(#{suburl}): #{result}"
-      end
-    end
+    # class LoungeRadio < Filter
+    #   URL = "http://www.lounge-radio.com/code/pushed_files/now.html"
+    #   def self.filter!(o)
+    #     self.new(o).apply! if o.result =~ %r(LOUNGE-RADIO.COM)
+    #   end
+    #   def apply!
+    #     res = Nokogiri::HTML(URI.open(URL))
+    #     fs = res.search('div#container').map {|e| e.inner_text }.to_s.split(/\r\n/m).map{|s| s.strip}.reject {|s| s.empty?}[1..-2]
+    #     fs.reject!{ |f| f =~ /<img/ } # remove playlist img
+    #     fs = Hash[*fs]
+    #     result.replace "lounge radio: #{fs['Artist:']} - #{fs['Track:']}  (#{fs['Album:']})"
+    #   end
+    # end
 
   end
 
   def self.run(opts = { })
     selecter = Selector
-    if use = opts[:use]
-      if use.kind_of?(Array) and use.size == 2
-        use, args = use
-        use = [use].flatten
-      else
-        args = { }
-      end
-      use.each { |u, a|
-        runner.each{ |r|
-          r.extend(extension(u))
-          args.each_pair do |iv, i|
-            meth = "#{iv}="
-            r.send(meth, i) #if r.respond_to?(meth)
-          end
-        }
-      }
-    end
     selecter.run(runner, skip)
   end
 
@@ -195,33 +119,6 @@ module NP
     end
   end
 
-  module SSH
-    USER   = ENV['USER']
-    PREFIX = 'ssh '
-
-    attr_accessor :user, :server, :prefix
-    def prefix
-      @prefix || PREFIX
-    end
-
-    def user
-      @user || USER
-    end
-
-    def server
-      @server || 'localhost'
-    end
-
-    def sh(arg)
-      puts "#{prefix} #{user}@#{server} #{arg}"
-      `#{prefix} #{user}@#{server} #{arg}`
-    end
-
-    def to_s
-      super.gsub(/\):( )/, "@#{server}) ")
-    end
-  end
-
   class MPD < Selector
     def output
       @output ||= sh 'mpc status 2>&1'
@@ -239,7 +136,7 @@ module NP
       @result = lines[0]
       super
     end
-  end  if ENV["MPD_HOST"]
+  end if ENV["MPD_HOST"]
 
   class Playerctl < Selector
 
@@ -376,14 +273,8 @@ end
 
 NP.skip = []
 
-argv = ARGV.join
 
-puts (if argv and argv.strip == "ssh"
-        NP.run(:use => [:ssh, { :server => :nyx} ] )
-      else
-        NP.run
-      end) and __FILE__ == $0
-
+puts  NP.run
 
 __END__
 # License: GPL
