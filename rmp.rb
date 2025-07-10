@@ -10,20 +10,6 @@ require 'delegate'
 require 'open-uri'
 require 'nokogiri'
 
-
-#
-# Dead simple extensible np script which supports multible media
-# sources and remote access via ssh.
-#
-#  puts (if ARGV.size > 0
-#    NP.run(:use => [:ssh, { :user => :mit, :server => :tie} ] )
-#  else
-#    NP.run
-#  end)
-#
-
-HOST = "localhost"
-
 module NP
 
   def runner
@@ -137,6 +123,7 @@ module NP
       super
     end
   end if ENV["MPD_HOST"]
+
 
   class Playerctl < Selector
 
@@ -273,8 +260,9 @@ end
 
 NP.skip = []
 
-
-puts  NP.run
+if __FILE__ == $0
+  puts NP.run
+end
 
 __END__
 # License: GPL
