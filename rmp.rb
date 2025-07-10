@@ -6,7 +6,6 @@
 # Author:  Michael 'entropie' Trommer <mictro@gmail.com>
 #
 
-require 'rubygems'
 require 'delegate'
 require 'open-uri'
 require 'nokogiri'
@@ -214,6 +213,7 @@ module NP
     end
 
     def sh(arg)
+      puts "#{prefix} #{user}@#{server} #{arg}"
       `#{prefix} #{user}@#{server} #{arg}`
     end
 
@@ -241,12 +241,128 @@ module NP
     end
   end  if ENV["MPD_HOST"]
 
+  class Playerctl < Selector
 
-  class Spotify < Selector
+    class PCTLEntry
+      include NP
+
+      def self.entry_handler(t = nil)
+        @entry_handler ||= Playerctl.constants.select{ |c| "Entry" == c.to_s[0..4]}
+        if t
+          ret = @entry_handler.select{ |eh| eh.to_s.downcase =~ /#{t}/ }.shift
+          return Playerctl.const_get(ret)
+        end
+
+        @entry_handler
+      end
+
+      def self.parse_pctl_output(output )
+        return nil if not output or output.empty?
+        clzs = Playerctl.constants.select{ |c| "Entry" == c.to_s[0..4]}
+        output.map do |line|
+          clz = entry_handler(line.split(".").first)
+          clz = clz.new(line)
+          clz
+        end
+      end
+
+      def initialize(str)
+        @string = str
+      end
+
+      def handler
+        @string.split(".").first
+      end
+
+      def result
+        return "" unless `which playerctl`
+        artist = sh "playerctl -p #{handler} metadata --format '{{artist}}'"
+        title  = sh "playerctl -p #{handler} metadata --format '{{title}}'"
+        if artist.strip.empty?
+          @result = "%s" % [title]
+        else
+          @result = "%s - %s" % [artist.strip, title.strip]
+        end
+      end
+
+      def to_s
+        "NP(#{handler}): #{result}"
+      end
+    end
+
+    class EntrySpotify < PCTLEntry
+    end
+
+    class EntryBrave < PCTLEntry
+    end
+
+
+    def playerctl
+      @playerctl ||= `playerctl -l`.split
+    rescue
+      nil
+    end
+    
     def output
-      @output ||= sh "playerctl metadata --format '{{ artist }} - {{ album }} - {{ title }}' 2>&1"
-      @output = "" if @output =~ /No players found/
-      @output ||= ''
+      @output = playerctl
+      return "" if not @output or @output.empty?
+
+      result_arr = PCTLEntry.parse_pctl_output(@output)
+      @output = result_arr.join
+    end
+
+    def match
+      @result ||= output
+      super
+    end
+
+    def to_s
+      @result
+    end
+  end
+  
+
+  class Pulseaudio < Selector
+
+    def pactl_awk
+      cmd = <<~SH
+    pactl list sink-inputs | awk '
+      /application.name =/ {
+        gsub(/"/, "", $3); app=$3
+        for (i=4; i<=NF; i++) { gsub(/"/, "", $i); app = app " " $i }
+        print app
+      }
+      /media.name =/ {
+        gsub(/"/, "", $3); title=$3
+        for (i=4; i<=NF; i++) { gsub(/"/, "", $i); title = title " " $i }
+        print title
+      }
+    '
+  SH
+    end
+
+    def to_s
+      hash = @result.each_slice(2).to_h
+      hash.select!{ |h,k| h != "spotify" }
+      hash.select!{ |h,k| h != "Brave" }
+
+      hash.inject("") do |res, h|
+        h.unshift h.shift.to_s.downcase
+        res << "NP(%s): %s\n" % [*h]
+      end
+    end
+
+    def self.running?
+      @pulseaudio ||= `which pactl > /dev/null 2>&1`
+    end
+
+    def output
+      return "" unless Pulseaudio.running?
+      @result = `#{pactl_awk}`.split("\n")
+      if not @result or @result.empty?
+        return ""
+      end
+      @result
     end
 
     def match
@@ -256,70 +372,14 @@ module NP
     end
 
   end
-
-  class VLC < Selector
-    def output
-      @output ||= Nokogiri::HTML(URI.open("http://#{HOST}:7000/np.html")).to_s.strip
-    rescue
-      ''
-    end
-
-    def match
-      @result = output.to_s
-      return false if @result.empty? or @result.scan(/[A-Za-z]/).empty?
-      super
-    end
-  end
-
-  class MPlayer < Selector
-    def output
-      @output ||= sh 'ps ax | grep mplayer'
-    end
-
-    def match
-      @result = output.split("\n").inject([]) do |m, l|
-        unless l.to_s.strip.empty?
-          m << l.scan(/mplayer (.*$)$/m).flatten.map{ |l| l.split(" ").last}
-        end
-      end.uniq.flatten
-      return false if @result.empty?
-      super
-    end
-  end
-
-
-  class Amarok < Selector
-    def output
-      @output ||= sh "dcop amarok player title"
-    end
-
-    def match
-      @result = output.to_s
-      return false if @result.empty?
-      super
-    end
-  end
-
-  class ShellFM < Selector
-
-    NpFile = File.expand_path('~/Tmp/shell-fm.np')
-
-    # i use an alias in my .zshrc like:
-    #  alias sfm="shell-fm || rm -f ~/Tmp/shell-fm.np && echo \"removed np file\""
-    def output
-      @output ||= if File.exist?(NpFile) then sh "cat #{NpFile}".strip else '' end
-    end
-    def match
-      return false if (@result = output.to_s).empty?
-      super
-    end
-  end
 end
 
-NP.skip = [NP::Amarok]
+NP.skip = []
 
-puts (if ARGV.size > 0 and ARGV.to_s.strip == "ssh"
-        NP.run(:use => [:ssh, { :user => :mit, :server => :tie} ] )
+argv = ARGV.join
+
+puts (if argv and argv.strip == "ssh"
+        NP.run(:use => [:ssh, { :server => :nyx} ] )
       else
         NP.run
       end) and __FILE__ == $0
